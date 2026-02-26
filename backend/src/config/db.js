@@ -6,7 +6,9 @@ const RETRY_DELAY = 5000; // 5 seconds
 const connectDB = async (retries = MAX_RETRIES) => {
   try {
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      family: 4,            // Force IPv4 – avoids IPv6 DNS delays on many networks
     });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
 

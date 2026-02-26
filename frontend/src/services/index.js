@@ -3,3 +3,4 @@ export { authService } from './authService';
 export { taskService } from './taskService';
 export { userService } from './userService';
 export { chatService } from './chatService';
+export * as mentorService from './mentorService';

@@ -16,6 +16,7 @@ import authRoutes from './routes/authRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
+import mentorRoutes from './routes/mentorRoutes.js';
 
 // Load env vars
 dotenv.config();
@@ -23,10 +24,15 @@ dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 
+// Allowed origins for CORS
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? [process.env.CLIENT_URL]
+  : [process.env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:5174'].filter(Boolean);
+
 // Socket.IO setup
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -41,7 +47,7 @@ app.use(express.json({ limit: '10kb' })); // Limit body size
 // Enable CORS
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: allowedOrigins,
     credentials: true,
   })
 );
@@ -57,6 +63,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/mentors', mentorRoutes);
 
 // Health check route (verifies DB connectivity)
 app.get('/api/health', async (req, res) => {

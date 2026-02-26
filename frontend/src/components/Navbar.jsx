@@ -42,6 +42,7 @@ const Navbar = () => {
   const navLinks = [
     { to: '/browse', label: 'Browse', icon: Search },
     { to: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+    { to: '/mentors', label: 'Mentors', icon: User },
   ];
 
   const authLinks = [

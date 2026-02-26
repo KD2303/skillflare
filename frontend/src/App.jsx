@@ -16,6 +16,9 @@ import {
   Leaderboard,
   PostTask,
 } from './pages';
+import Mentors from './pages/Mentors';
+import MentorProfile from './pages/MentorProfile';
+import ApplyMentor from './pages/ApplyMentor';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -123,6 +126,30 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <PostTask />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mentors"
+          element={
+            <ProtectedRoute>
+              <Mentors />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mentors/apply"
+          element={
+            <ProtectedRoute>
+              <ApplyMentor />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mentors/:id"
+          element={
+            <ProtectedRoute>
+              <MentorProfile />
             </ProtectedRoute>
           }
         />

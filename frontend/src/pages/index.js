@@ -8,3 +8,6 @@ export { default as Profile } from './Profile';
 export { default as EditProfile } from './EditProfile';
 export { default as Leaderboard } from './Leaderboard';
 export { default as PostTask } from './PostTask';
+export { default as Mentors } from './Mentors';
+export { default as MentorProfile } from './MentorProfile';
+export { default as ApplyMentor } from './ApplyMentor';
