@@ -20,6 +20,6 @@ router.post('/register', authLimiter, registerRules, register);
 router.post('/login', authLimiter, loginRules, login);
 router.get('/me', protect, getMe);
 router.get('/logout', protect, logout);
-router.put('/updatepassword', protect, updatePasswordRules, updatePassword);
+router.put('/updatepassword', protect, authLimiter, updatePasswordRules, updatePassword);
 
 export default router;

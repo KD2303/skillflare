@@ -47,6 +47,10 @@ const mentorshipRequestSchema = new mongoose.Schema(
   }
 );
 
+// Indexes for common query patterns
+mentorshipRequestSchema.index({ studentId: 1 });
+mentorshipRequestSchema.index({ mentorId: 1, status: 1 });
+
 const MentorshipRequest = mongoose.model('MentorshipRequest', mentorshipRequestSchema);
 
 export default MentorshipRequest;

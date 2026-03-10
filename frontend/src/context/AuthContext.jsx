@@ -23,18 +23,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAuth = async () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const response = await authService.getMe();
-        setUser(response.user);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        localStorage.removeItem('token');
-        setUser(null);
-        setIsAuthenticated(false);
-      }
+    try {
+      const response = await authService.getMe();
+      setUser(response.user);
+      setIsAuthenticated(true);
+    } catch {
+      setUser(null);
+      setIsAuthenticated(false);
     }
     setLoading(false);
   };
@@ -42,7 +37,6 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authService.login(email, password);
-      localStorage.setItem('token', response.token);
       setUser(response.user);
       setIsAuthenticated(true);
       toast.success(`Welcome back, ${response.user.name}!`);
@@ -60,7 +54,6 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await authService.register(userData);
-      localStorage.setItem('token', response.token);
       setUser(response.user);
       setIsAuthenticated(true);
       toast.success('Account created successfully!');
@@ -76,7 +69,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    authService.logout().catch(() => {});
     setUser(null);
     setIsAuthenticated(false);
     toast.success('Logged out successfully');

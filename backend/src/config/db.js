@@ -1,5 +1,9 @@
 import mongoose from 'mongoose';
 
+// Note: dns.setServers override removed — it was a local dev workaround that
+// overrides system DNS globally. If you have local DNS issues, set the
+// MONGODB_URI to use an IP address or configure DNS at the OS level instead.
+
 const MAX_RETRIES = 5;
 const RETRY_DELAY = 5000; // 5 seconds
 

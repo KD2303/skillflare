@@ -99,7 +99,7 @@ export const validate = (rules) => {
 export const registerRules = validate([
   { field: 'name', type: 'string', required: true, min: 1, max: 50 },
   { field: 'email', type: 'email', required: true },
-  { field: 'password', type: 'string', required: true, min: 6 },
+  { field: 'password', type: 'string', required: true, min: 8 },
 ]);
 
 export const loginRules = validate([
@@ -109,7 +109,7 @@ export const loginRules = validate([
 
 export const updatePasswordRules = validate([
   { field: 'currentPassword', type: 'string', required: true, message: 'Current password is required' },
-  { field: 'newPassword', type: 'string', required: true, min: 6, message: 'New password must be at least 6 characters' },
+  { field: 'newPassword', type: 'string', required: true, min: 8, message: 'New password must be at least 8 characters' },
 ]);
 
 export const createTaskRules = validate([

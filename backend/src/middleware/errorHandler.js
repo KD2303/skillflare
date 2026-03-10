@@ -3,8 +3,12 @@ const errorHandler = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
 
-  // Log error for dev
-  console.error(err);
+  // Log error — full details in dev, minimal in production to avoid leaking internals
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(err);
+  } else {
+    console.error(`[${err.name}] ${err.message}`);
+  }
 
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
