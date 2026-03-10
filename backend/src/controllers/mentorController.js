@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import asyncHandler from '../utils/asyncHandler.js';
 import User from '../models/User.js';
 import MentorProfile from '../models/MentorProfile.js';
@@ -197,18 +198,22 @@ export const requestSession = asyncHandler(async (req, res) => {
     throw new Error('Insufficient credits');
   }
 
-  // Deduct credits temporarily
-  student.creditPoints -= creditsUsed;
-  await student.save();
+  // Use a transaction so credit deduction and request creation are atomic
+  const session = await mongoose.startSession();
+  let request;
+  try {
+    await session.withTransaction(async () => {
+      student.creditPoints -= creditsUsed;
+      await student.save({ session });
 
-  const request = await MentorshipRequest.create({
-    studentId: req.user._id,
-    mentorId,
-    skill,
-    message,
-    sessionDate,
-    creditsUsed,
-  });
+      [request] = await MentorshipRequest.create(
+        [{ studentId: req.user._id, mentorId, skill, message, sessionDate, creditsUsed }],
+        { session }
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
 
   res.status(201).json(request);
 });

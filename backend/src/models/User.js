@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, 'Please add a password'],
-      minlength: [6, 'Password must be at least 6 characters'],
+      minlength: [8, 'Password must be at least 8 characters'],
       select: false,
     },
     role: {
@@ -108,7 +108,7 @@ userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
     next();
   }
-  const salt = await bcrypt.genSalt(10);
+  const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
 });
 
@@ -132,6 +132,9 @@ userSchema.methods.calculateAverageRating = function () {
   const sum = this.ratings.reduce((acc, item) => acc + item.rating, 0);
   this.averageRating = Math.round((sum / this.ratings.length) * 10) / 10;
 };
+
+// Compound index for leaderboard sort (totalPoints DESC, tasksCompleted DESC)
+userSchema.index({ totalPoints: -1, tasksCompleted: -1 });
 
 const User = mongoose.model('User', userSchema);
 

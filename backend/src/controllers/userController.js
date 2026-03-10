@@ -21,11 +21,29 @@ export const getUserProfile = asyncHandler(async (req, res) => {
   });
 });
 
+// Only allow https:// and http:// URLs to prevent javascript: URI XSS
+const isSafeUrl = (value) => {
+  if (!value) return true;
+  try {
+    const { protocol } = new URL(value);
+    return protocol === 'https:' || protocol === 'http:';
+  } catch {
+    return false;
+  }
+};
+
 // @desc    Update user profile
 // @route   PUT /api/users/profile
 // @access  Private
 export const updateProfile = asyncHandler(async (req, res) => {
   const { name, bio, skills, portfolio, avatar } = req.body;
+
+  if (portfolio && !isSafeUrl(portfolio)) {
+    return res.status(400).json({ success: false, message: 'Invalid portfolio URL' });
+  }
+  if (avatar && !isSafeUrl(avatar)) {
+    return res.status(400).json({ success: false, message: 'Invalid avatar URL' });
+  }
 
   const user = await User.findById(req.user.id);
 

@@ -5,7 +5,10 @@ import User from '../models/User.js';
 export const protect = async (req, res, next) => {
   let token;
 
-  if (
+  // Prefer httpOnly cookie; fall back to Authorization header for API clients
+  if (req.cookies?.token) {
+    token = req.cookies.token;
+  } else if (
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {

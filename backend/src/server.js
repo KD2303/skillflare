@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
@@ -24,6 +25,12 @@ dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 
+// Trust the first proxy hop (Render, Railway, Heroku, Nginx, etc.)
+// Required for express-rate-limit to see the real client IP via X-Forwarded-For
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // Allowed origins for CORS
 const allowedOrigins = process.env.NODE_ENV === 'production'
   ? [process.env.CLIENT_URL]
@@ -41,13 +48,21 @@ const io = new Server(httpServer, {
 // --- Security middleware ---
 app.use(helmet());
 
+// Cookie parser (required to read httpOnly auth cookies)
+app.use(cookieParser());
+
 // Body parser
 app.use(express.json({ limit: '10kb' })); // Limit body size
 
 // Enable CORS
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. curl, Postman) in dev only
+      if (!origin && process.env.NODE_ENV !== 'production') return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   })
 );
@@ -128,7 +143,14 @@ io.on('connection', (socket) => {
   // Send message
   socket.on('chat:message', (data) => {
     if (!data || !data.chatRoomId || !data.message) return;
-    const { chatRoomId, message } = data;
+    if (typeof data.message !== 'string') return;
+    // Enforce maximum message length to prevent large payload abuse
+    const MAX_MSG_LEN = 2000;
+    const { chatRoomId } = data;
+    const message = typeof data.message === 'string'
+      ? data.message.trim().slice(0, MAX_MSG_LEN)
+      : '';
+    if (!message) return;
     socket.to(chatRoomId).emit('chat:newMessage', message);
   });
 
@@ -196,6 +218,14 @@ app.set('io', io);
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
+  // Validate required environment variables before anything else
+  const required = ['JWT_SECRET', 'MONGODB_URI'];
+  const missing = required.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    console.error(`FATAL: Missing required environment variables: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+
   await connectDB();
   
   httpServer.listen(PORT, () => {

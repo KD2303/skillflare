@@ -17,7 +17,8 @@ router.get('/leaderboard', getLeaderboard);
 router.get('/profile/:id', getUserProfile);
 
 // Protected routes
-router.get('/', protect, authorize('teacher'), getUsers);
+// NOTE: getUsers is disabled until a dedicated admin role is implemented
+// router.get('/', protect, authorize('teacher'), getUsers);
 router.put('/profile', protect, updateProfile);
 router.get('/stats', protect, getUserStats);
 router.post('/:id/rate', protect, rateUserRules, rateUser);
