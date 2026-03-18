@@ -1,7 +1,7 @@
 {
-  "name": "mits-campusskill-backend",
+  "name": "mits-SkillFlare-backend",
   "version": "1.0.0",
-  "description": "Backend API for MITS CampusSkill - Student Talent Marketplace",
+  "description": "Backend API for MITS SkillFlare - Student Talent Marketplace",
   "main": "src/server.js",
   "type": "module",
   "scripts": {

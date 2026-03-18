@@ -1,81 +1,65 @@
-import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
-// Protect routes - verify JWT token
-export const protect = async (req, res, next) => {
+export const protect = asyncHandler(async (req, res, next) => {
   let token;
 
-  // Prefer httpOnly cookie; fall back to Authorization header for API clients
   if (req.cookies?.token) {
     token = req.cookies.token;
-  } else if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
-    token = req.headers.authorization.split(' ')[1];
+  } else if (req.headers.authorization?.startsWith("Bearer")) {
+    token = req.headers.authorization.split(" ")[1];
   }
 
-  if (!token) {
-    return res.status(401).json({
-      success: false,
-      message: 'Not authorized, no token',
-    });
+  if (!token || token === "none") {
+    return res.status(401).json({ success: false, message: "Not authorized" });
   }
 
   try {
-    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Get user from token
-    req.user = await User.findById(decoded.id).select('-password');
+    req.user = await User.findById(decoded.id);
 
     if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized, user not found',
-      });
+      return res
+        .status(401)
+        .json({ success: false, message: "User no longer exists" });
     }
-
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error.message);
-    return res.status(401).json({
-      success: false,
-      message: 'Not authorized, token failed',
-    });
+    return res
+      .status(401)
+      .json({ success: false, message: "Session expired, please login again" });
   }
-};
+});
 
-// Grant access to specific roles
+// Role Authorization Middleware
 export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: `User role '${req.user.role}' is not authorized to access this route`,
+        message: `Role ${req.user.role} is not authorized to access this route`,
       });
     }
     next();
   };
 };
 
-// Check if user is a teacher
 export const isTeacher = (req, res, next) => {
-  if (req.user.role !== 'teacher') {
+  if (req.user.role !== "teacher") {
     return res.status(403).json({
       success: false,
-      message: 'Only teachers can perform this action',
+      message: "Only teachers can perform this action",
     });
   }
   next();
 };
 
-// Check if user is a student
 export const isStudent = (req, res, next) => {
-  if (req.user.role !== 'student') {
+  if (req.user.role !== "student") {
     return res.status(403).json({
       success: false,
-      message: 'Only students can perform this action',
+      message: "Only students can perform this action",
     });
   }
   next();

@@ -1,9 +1,10 @@
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
 
 // Generate JWT Token
 export const generateToken = (id) => {
+  const expiresIn = process.env.JWT_EXPIRE || "7d";
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE,
+    expiresIn,
   });
 };
 
@@ -16,7 +17,7 @@ export const sendTokenResponse = (user, statusCode, res) => {
     httpOnly: true,
   };
 
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === "production") {
     options.secure = true;
   }
 
@@ -39,7 +40,7 @@ export const sendTokenResponse = (user, statusCode, res) => {
     createdAt: user.createdAt,
   };
 
-  res.status(statusCode).cookie('token', token, options).json({
+  res.status(statusCode).cookie("token", token, options).json({
     success: true,
     user: userData,
   });

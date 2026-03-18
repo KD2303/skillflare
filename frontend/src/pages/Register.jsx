@@ -1,24 +1,42 @@
-import { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, Mail, Lock, User, UserPlus, GraduationCap, BookOpen, ShieldCheck } from 'lucide-react';
-import { ButtonLoading } from '../components/Loading';
-import { getRoleFromEmail, isAllowedEmailDomain } from '../utils/helpers';
+import { useState, useMemo, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  UserPlus,
+  GraduationCap,
+  BookOpen,
+  ShieldCheck,
+} from "lucide-react";
+import { ButtonLoading } from "../components/Loading";
+import {
+  getRoleFromEmail,
+  isAllowedEmailDomain,
+  isEmailDomainRestricted,
+} from "../utils/helpers";
 
 const Register = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
   });
 
-  const detectedRole = useMemo(() => getRoleFromEmail(formData.email), [formData.email]);
+  const detectedRole = useMemo(
+    () => getRoleFromEmail(formData.email),
+    [formData.email],
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const isSubmittingRef = useRef(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -30,38 +48,42 @@ const Register = () => {
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
-        [name]: '',
+        [name]: "",
       }));
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = "Name is required";
     } else if (formData.name.length < 2) {
-      newErrors.name = 'Name must be at least 2 characters';
+      newErrors.name = "Name must be at least 2 characters";
     }
 
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
-    } else if (!isAllowedEmailDomain(formData.email)) {
-      newErrors.email = 'Only @mitsgwalior.in (Faculty) and @mitsgwl.ac.in (Student) emails are allowed';
+      newErrors.email = "Please enter a valid email";
+    } else if (
+      isEmailDomainRestricted() &&
+      !isAllowedEmailDomain(formData.email)
+    ) {
+      newErrors.email =
+        "Only @mitsgwalior.in (Faculty) and @mitsgwl.ac.in (Student) emails are allowed";
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
+      newErrors.confirmPassword = "Please confirm your password";
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = "Passwords do not match";
     }
 
     setErrors(newErrors);
@@ -70,20 +92,23 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
     if (!validateForm()) return;
 
     try {
+      isSubmittingRef.current = true;
       setLoading(true);
       await register({
         name: formData.name,
-        email: formData.email,
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
         role: detectedRole,
       });
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (error) {
       // Error is handled in AuthContext
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };
@@ -101,7 +126,7 @@ const Register = () => {
               Create Account
             </h2>
             <p className="text-brand-text-secondary mt-2">
-              Join CampusSkill and start collaborating
+              Join SkillFlare and start collaborating
             </p>
           </div>
 
@@ -109,7 +134,10 @@ const Register = () => {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Name */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-brand-text-secondary mb-2 ml-1">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-brand-text-secondary mb-2 ml-1"
+              >
                 Full Name
               </label>
               <div className="relative group">
@@ -123,18 +151,23 @@ const Register = () => {
                   autoComplete="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className={`input pl-12 ${errors.name ? 'border-red-500/50 focus:border-red-500/50' : ''}`}
+                  className={`input pl-12 ${errors.name ? "border-red-500/50 focus:border-red-500/50" : ""}`}
                   placeholder="John Doe"
                 />
               </div>
               {errors.name && (
-                <p className="mt-1.5 text-xs font-medium text-red-400 ml-1">{errors.name}</p>
+                <p className="mt-1.5 text-xs font-medium text-red-400 ml-1">
+                  {errors.name}
+                </p>
               )}
             </div>
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-brand-text-secondary mb-2 ml-1">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-brand-text-secondary mb-2 ml-1"
+              >
                 Email Address
               </label>
               <div className="relative group">
@@ -148,32 +181,44 @@ const Register = () => {
                   autoComplete="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`input pl-12 ${errors.email ? 'border-red-500/50 focus:border-red-500/50' : ''}`}
+                  className={`input pl-12 ${errors.email ? "border-red-500/50 focus:border-red-500/50" : ""}`}
                   placeholder="you@mits.ac.in"
                 />
               </div>
               {errors.email && (
-                <p className="mt-1.5 text-xs font-medium text-red-400 ml-1">{errors.email}</p>
+                <p className="mt-1.5 text-xs font-medium text-red-400 ml-1">
+                  {errors.email}
+                </p>
               )}
               {/* Auto-detected Role Badge */}
               {formData.email && !errors.email && detectedRole && (
                 <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-orange/10 border border-brand-orange/20">
                   <ShieldCheck className="w-4 h-4 text-brand-orange" />
                   <span className="text-sm text-brand-orange font-medium">
-                    Role detected: <span className="font-bold uppercase">{detectedRole === 'teacher' ? 'Faculty' : 'Student'}</span>
+                    Role detected:{" "}
+                    <span className="font-bold uppercase">
+                      {detectedRole === "teacher" ? "Faculty" : "Student"}
+                    </span>
                   </span>
                 </div>
               )}
-              {formData.email && !errors.email && !detectedRole && formData.email.includes('@') && (
-                <p className="mt-1.5 text-xs font-medium text-yellow-400 ml-1">
-                  Use @mitsgwalior.in (Faculty) or @mitsgwl.ac.in (Student)
-                </p>
-              )}
+              {formData.email &&
+                !errors.email &&
+                isEmailDomainRestricted() &&
+                !detectedRole &&
+                formData.email.includes("@") && (
+                  <p className="mt-1.5 text-xs font-medium text-yellow-400 ml-1">
+                    Use @mitsgwalior.in (Faculty) or @mitsgwl.ac.in (Student)
+                  </p>
+                )}
             </div>
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-brand-text-secondary mb-2 ml-1">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-brand-text-secondary mb-2 ml-1"
+              >
                 Password
               </label>
               <div className="relative group">
@@ -183,11 +228,11 @@ const Register = () => {
                 <input
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`input pl-12 pr-10 ${errors.password ? 'border-red-500/50 focus:border-red-500/50' : ''}`}
+                  className={`input pl-12 pr-10 ${errors.password ? "border-red-500/50 focus:border-red-500/50" : ""}`}
                   placeholder="Create a password"
                 />
                 <button
@@ -203,13 +248,18 @@ const Register = () => {
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1.5 text-xs font-medium text-red-400 ml-1">{errors.password}</p>
+                <p className="mt-1.5 text-xs font-medium text-red-400 ml-1">
+                  {errors.password}
+                </p>
               )}
             </div>
 
             {/* Confirm Password */}
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-brand-text-secondary mb-2 ml-1">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-brand-text-secondary mb-2 ml-1"
+              >
                 Confirm Password
               </label>
               <div className="relative group">
@@ -219,16 +269,18 @@ const Register = () => {
                 <input
                   id="confirmPassword"
                   name="confirmPassword"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className={`input pl-12 ${errors.confirmPassword ? 'border-red-500/50 focus:border-red-500/50' : ''}`}
+                  className={`input pl-12 ${errors.confirmPassword ? "border-red-500/50 focus:border-red-500/50" : ""}`}
                   placeholder="Confirm your password"
                 />
               </div>
               {errors.confirmPassword && (
-                <p className="mt-1.5 text-xs font-medium text-red-400 ml-1">{errors.confirmPassword}</p>
+                <p className="mt-1.5 text-xs font-medium text-red-400 ml-1">
+                  {errors.confirmPassword}
+                </p>
               )}
             </div>
 
@@ -238,14 +290,14 @@ const Register = () => {
               disabled={loading}
               className="btn-primary w-full py-4 font-bold shadow-glow"
             >
-              {loading ? <ButtonLoading /> : 'Create Account'}
+              {loading ? <ButtonLoading /> : "Create Account"}
             </button>
           </form>
 
           {/* Footer */}
           <div className="mt-8 text-center pt-6 border-t border-brand-border/50">
             <p className="text-brand-text-secondary">
-              Already have an account?{' '}
+              Already have an account?{" "}
               <Link
                 to="/login"
                 className="text-brand-orange font-bold hover:underline"

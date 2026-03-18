@@ -38,7 +38,7 @@ const Home = () => {
             <h1 className="heading-hero">
               <span className="block text-white">#LEVEL UP</span>
               <span className="block text-gray-400">YOUR SKILLS WITH</span>
-              <span className="block text-brand-orange tracking-widest">CAMPUSSKILL</span>
+              <span className="block text-brand-orange tracking-widest">SkillFlare</span>
             </h1>
             
             <p className="text-xl text-gray-400 max-w-lg leading-relaxed">
@@ -236,7 +236,7 @@ const Home = () => {
                Ready to specific start?
             </h2>
             <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
-               Join hundreds of MITS students and teachers already using CampusSkill to achieve more together.
+               Join hundreds of MITS students and teachers already using SkillFlare to achieve more together.
             </p>
             <Link to="/register" className="btn-primary px-10 py-4 text-lg shadow-glow">
                Create Free Account

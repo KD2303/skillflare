@@ -1,145 +1,123 @@
-import User from '../models/User.js';
-import asyncHandler from '../utils/asyncHandler.js';
-import { sendTokenResponse } from '../utils/tokenUtils.js';
+import User from "../models/User.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import { sendTokenResponse } from "../utils/tokenUtils.js";
+import jwt from "jsonwebtoken";
 
-// Allowed email domains and their corresponding roles
+// Configuration for roles
 const DOMAIN_ROLE_MAP = {
-  'mitsgwalior.in': 'teacher',
-  'mitsgwl.ac.in': 'student',
+  "mitsgwalior.in": "teacher",
+  "mitsgwl.ac.in": "student",
 };
 
+const isEmailDomainRestrictionEnabled =
+  process.env.RESTRICT_EMAIL_DOMAIN === "true" ||
+  process.env.NODE_ENV === "production";
+
 const getRoleFromEmail = (email) => {
-  if (!email || !email.includes('@')) return null;
-  const domain = email.split('@').pop().toLowerCase();
+  if (!email || !email.includes("@")) return null;
+  const domain = email.split("@").pop().toLowerCase();
   return DOMAIN_ROLE_MAP[domain] || null;
 };
 
-// @desc    Register user
-// @route   POST /api/auth/register
-// @access  Public
-export const register = asyncHandler(async (req, res) => {
-  const { name, email, password, skills } = req.body;
+const resolveUserRole = (email, requestedRole) => {
+  const derivedRole = getRoleFromEmail(email);
+  if (derivedRole) return derivedRole;
 
-  // Validate email domain and derive role
-  const role = getRoleFromEmail(email);
+  // If restriction is ON and domain doesn't match, block registration
+  if (isEmailDomainRestrictionEnabled) return null;
+
+  // If restriction is OFF (Dev mode), fallback to requested role or student
+  return requestedRole === "teacher" ? "teacher" : "student";
+};
+
+// @desc    Register user
+export const register = asyncHandler(async (req, res) => {
+  const { name, email, password, skills, role: requestedRole } = req.body;
+  const normalizedEmail = (email || "").trim().toLowerCase();
+
+  const role = resolveUserRole(normalizedEmail, requestedRole);
   if (!role) {
     return res.status(400).json({
       success: false,
-      message: 'Only @mitsgwalior.in (Faculty) and @mitsgwl.ac.in (Student) email addresses are allowed',
+      message: "Please use your institutional email (@mitsgwalior.in or @mitsgwl.ac.in)",
     });
   }
 
-  // Check if user exists
-  const userExists = await User.findOne({ email });
-
+  const userExists = await User.findOne({ email: normalizedEmail });
   if (userExists) {
-    return res.status(400).json({
-      success: false,
-      message: 'User already exists with this email',
-    });
+    return res.status(409).json({ success: false, message: "Email already registered" });
   }
 
-  // Create user
-  const user = await User.create({
-    name,
-    email,
-    password,
-    role,
-    skills: skills || [],
-  });
-
-  sendTokenResponse(user, 201, res);
+  try {
+    const user = await User.create({
+      name,
+      email: normalizedEmail,
+      password,
+      role,
+      skills: skills || [],
+    });
+    sendTokenResponse(user, 201, res);
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ success: false, message: "Email already registered" });
+    }
+    throw err;
+  }
 });
 
 // @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
+  const normalizedEmail = (email || "").trim().toLowerCase();
 
-  // Validate email & password
   if (!email || !password) {
-    return res.status(400).json({
-      success: false,
-      message: 'Please provide an email and password',
-    });
+    return res.status(400).json({ success: false, message: "Please provide email and password" });
   }
 
-  // Validate email domain
-  const derivedRole = getRoleFromEmail(email);
-  if (!derivedRole) {
-    return res.status(400).json({
-      success: false,
-      message: 'Only @mitsgwalior.in (Faculty) and @mitsgwl.ac.in (Student) email addresses are allowed',
-    });
-  }
-
-  // Check for user
-  const user = await User.findOne({ email }).select('+password');
-
-  if (!user) {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid credentials',
-    });
-  }
-
-  // Check if password matches
-  const isMatch = await user.matchPassword(password);
-
-  if (!isMatch) {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid credentials',
-    });
+  const user = await User.findOne({ email: normalizedEmail }).select("+password");
+  if (!user || !(await user.matchPassword(password))) {
+    return res.status(401).json({ success: false, message: "Invalid credentials" });
   }
 
   sendTokenResponse(user, 200, res);
 });
 
-// @desc    Get current logged in user
-// @route   GET /api/auth/me
-// @access  Private
-export const getMe = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user.id);
+// @desc    Get Session (Non-blocking)
+export const getSession = asyncHandler(async (req, res) => {
+  const token = req.cookies?.token;
+  if (!token) return res.status(200).json({ success: true, authenticated: false, user: null });
 
-  res.status(200).json({
-    success: true,
-    user,
-  });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-password");
+    if (!user) return res.status(200).json({ success: true, authenticated: false, user: null });
+
+    res.status(200).json({ success: true, authenticated: true, user });
+  } catch {
+    res.status(200).json({ success: true, authenticated: false, user: null });
+  }
 });
 
-// @desc    Logout user / clear cookie
-// @route   GET /api/auth/logout
-// @access  Private
+// @desc    Logout
 export const logout = asyncHandler(async (req, res) => {
-  res.cookie('token', 'none', {
-    expires: new Date(Date.now() + 10 * 1000),
+  res.cookie("token", "none", {
+    expires: new Date(Date.now() + 5 * 1000),
     httpOnly: true,
   });
-
-  res.status(200).json({
-    success: true,
-    message: 'Logged out successfully',
-  });
+  res.status(200).json({ success: true, message: "Logged out successfully" });
 });
 
-// @desc    Update password
-// @route   PUT /api/auth/updatepassword
-// @access  Private
+export const getMe = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id);
+  res.status(200).json({ success: true, user });
+});
+
 export const updatePassword = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user.id).select('+password');
-
-  // Check current password
+  const user = await User.findById(req.user.id).select("+password");
   if (!(await user.matchPassword(req.body.currentPassword))) {
-    return res.status(401).json({
-      success: false,
-      message: 'Current password is incorrect',
-    });
+    return res.status(401).json({ success: false, message: "Current password incorrect" });
   }
-
   user.password = req.body.newPassword;
   await user.save();
-
   sendTokenResponse(user, 200, res);
 });

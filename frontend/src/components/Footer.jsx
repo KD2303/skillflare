@@ -11,15 +11,13 @@ const Footer = () => {
           {/* Brand */}
           <div className="col-span-1 md:col-span-2 space-y-4">
             <Link to="/" className="flex items-center gap-2 group mb-6">
-              <div className="w-10 h-10 rounded-full bg-brand-orange flex items-center justify-center text-white font-display font-bold text-xl shadow-glow">
-                M
-              </div>
+              <div className="w-10 h-10 rounded-full bg-brand-orange flex items-center justify-center text-white font-display font-bold text-xl shadow-glow">SF</div>
               <span className="font-display font-bold text-xl tracking-tight text-white">
-                CampusSkill
+                SkillFlare
               </span>
             </Link>
             <p className="text-gray-400 max-w-sm leading-relaxed">
-              MITS CampusSkill connects students and teachers to create a thriving ecosystem of learning, collaboration, and growth.
+              MITS SkillFlare connects students and teachers to create a thriving ecosystem of learning, collaboration, and growth.
             </p>
             <div className="flex space-x-4 pt-4">
               {[Github, Twitter, Linkedin, Facebook].map((Icon, idx) => (
@@ -70,7 +68,7 @@ const Footer = () => {
         {/* Bottom bar */}
         <div className="pt-8 border-t border-brand-border flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-gray-500 text-sm">
-            © {currentYear} MITS CampusSkill. All rights reserved.
+            © {currentYear} MITS SkillFlare. All rights reserved.
           </p>
           <div className="flex items-center space-x-6">
             <Link to="#" className="text-xs text-gray-500 hover:text-white">Privacy Policy</Link>

@@ -1,8 +1,8 @@
-# MITS CampusSkill 🎓
+# MITS SkillFlare 🎓
 
 A comprehensive student talent marketplace platform where teachers and students collaborate through tasks, chat, a credit-based reward system, and professional mentorship.
 
-![MITS CampusSkill Banner](https://via.placeholder.com/800x200/1F2A8A/FFFFFF?text=MITS+CampusSkill)
+![MITS SkillFlare Banner](https://via.placeholder.com/800x200/1F2A8A/FFFFFF?text=MITS+SkillFlare)
 
 ## 🌟 Features
 
@@ -64,7 +64,7 @@ A comprehensive student talent marketplace platform where teachers and students 
 
 1. **Clone the repository**
    ```bash
-   cd "MITS CampusSkill"
+   cd "MITS SkillFlare"
    ```
 
 2. **Install Backend Dependencies**
@@ -116,7 +116,7 @@ A comprehensive student talent marketplace platform where teachers and students 
 ## 📁 Project Structure
 
 ```
-MITS CampusSkill/
+MITS SkillFlare/
 ├── backend/
 │   ├── src/
 │   │   ├── config/
@@ -264,8 +264,8 @@ This project is licensed under the MIT License.
 
 ## 👥 Team
 
-**MITS CampusSkill Development Team**
+**MITS SkillFlare Development Team**
 
 ---
 
-Made with ❤️ for MITS CampusSkill
+Made with ❤️ for MITS SkillFlare

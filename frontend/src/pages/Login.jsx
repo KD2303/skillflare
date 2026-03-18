@@ -75,7 +75,7 @@ const Login = () => {
               Welcome Back
             </h2>
             <p className="text-brand-text-secondary mt-2">
-              Sign in to your CampusSkill account
+              Sign in to your SkillFlare account
             </p>
           </div>
 

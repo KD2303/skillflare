@@ -58,11 +58,9 @@ const Navbar = () => {
         <div className="flex justify-between items-center">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-full bg-brand-orange flex items-center justify-center text-white font-display font-bold text-xl shadow-glow transition-transform group-hover:scale-110">
-              M
-            </div>
+            <div className="w-10 h-10 rounded-full bg-brand-orange flex items-center justify-center text-white font-display font-bold text-xl shadow-glow transition-transform group-hover:scale-110">SF</div>
             <span className="font-display font-bold text-xl tracking-tight text-white group-hover:text-brand-orange transition-colors">
-              CampusSkill
+              SkillFlare
             </span>
           </Link>
 
