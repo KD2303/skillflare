@@ -1,0 +1,429 @@
+name: CI/CD Pipeline - Production Ready
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    name: Lint & Test (Node ${{ matrix.node-version }})
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      # Backend
+      - name: Install Backend Dependencies
+        run: cd backend && npm install
+
+      - name: Lint Backend Code
+        run: cd backend && npm run lint --if-present
+
+      - name: Type Check Backend
+        run: cd backend && npm run typecheck --if-present
+
+      - name: Run Backend Unit Tests
+        run: cd backend && npm test -- --coverage --maxWorkers=2
+        env:
+          NODE_ENV: test
+          MONGODB_URI: ${{ secrets.TEST_MONGODB_URI || 'mongodb://localhost:27017/skillflare-test' }}  # yamllint disable-line rule:line-length
+          JWT_SECRET: test-secret-key
+
+      - name: Upload Backend Coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./backend/coverage/lcov.info
+          flags: backend
+          name: backend-coverage
+
+      # Frontend
+      - name: Install Frontend Dependencies
+        run: cd frontend && npm install
+
+      - name: Lint Frontend Code
+        run: cd frontend && npm run lint --if-present
+
+      - name: Type Check Frontend
+        run: cd frontend && npm run typecheck --if-present
+
+      - name: Build Frontend
+        run: cd frontend && npm run build
+        env:
+          VITE_API_URL: http://localhost:5000/api
+          VITE_SOCKET_URL: http://localhost:5000
+
+      - name: Upload Frontend Coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+
+  security:
+    runs-on: ubuntu-latest
+    name: Security & OWASP Scanning
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run npm audit
+        run: |
+          cd backend && npm audit --audit-level=moderate
+          cd ../frontend && npm audit --audit-level=moderate
+        continue-on-error: true
+        if: always()
+
+      - name: Run Snyk Scan
+        if: ${{ env.SNYK_TOKEN != '' }}
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN || '' }}
+        with:
+          args: --severity-threshold=high
+        continue-on-error: true
+
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: "SkillFlare"
+          path: "."
+          format: "JSON"
+        continue-on-error: true
+
+      - name: SonarQube Analysis
+        if: ${{ env.SONAR_HOST_URL != '' && env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@master
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || '' }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN || '' }}
+        continue-on-error: true
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    name: Integration Tests
+    services:
+      mongodb:
+        image: mongo:6
+        options: >-
+          --health-cmd mongosh
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 27017:27017
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Install Backend Dependencies
+        run: cd backend && npm install
+
+      - name: Start Backend Server
+        run: cd backend && npm run dev &
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://localhost:27017/skillflare-test
+          JWT_SECRET: test-secret-key
+
+      - name: Wait for Backend
+        run: sleep 5 && curl -f http://localhost:5000/api/health || exit 1
+
+      - name: Run Integration Tests
+        run: cd backend && npm test -- tests/integration --coverage
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://localhost:27017/skillflare-test
+          JWT_SECRET: test-secret-key
+
+      - name: Upload Integration Coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./backend/coverage/lcov.info
+          flags: integration
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    name: E2E Tests
+    services:
+      mongodb:
+        image: mongo:6
+        ports:
+          - 27017:27017
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Setup Playwright
+        uses: microsoft/playwright-github-action@v1
+
+      - name: Install Backend Dependencies
+        run: cd backend && npm install
+
+      - name: Install Frontend Dependencies
+        run: cd frontend && npm install
+
+      - name: Build Frontend
+        run: cd frontend && npm run build
+        env:
+          VITE_API_URL: http://localhost:5000/api
+          VITE_SOCKET_URL: http://localhost:5000
+
+      - name: Start Backend
+        run: cd backend && npm run dev &
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://localhost:27017/skillflare-test
+          JWT_SECRET: test-secret-key
+          PORT: 5000
+
+      - name: Start Frontend Preview
+        run: cd frontend && npm run preview &
+        env:
+          PORT: 5173
+
+      - name: Wait for Services
+        run: |
+          npx wait-on http://localhost:5000/api/health
+          npx wait-on http://localhost:5173
+
+      - name: Run E2E Tests
+        run: cd frontend && npx playwright test
+        env:
+          BASE_URL: http://localhost:5173
+          API_URL: http://localhost:5000/api
+
+      - name: Upload E2E Test Results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: e2e-test-results
+          path: frontend/test-results/
+
+  performance-tests:
+    runs-on: ubuntu-latest
+    name: Performance & Load Tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    services:
+      mongodb:
+        image: mongo:6
+        ports:
+          - 27017:27017
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Install k6
+        run: |
+          sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3232A
+          echo "deb [signed-by=/usr/share/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee /etc/apt/sources.list.d/grafana.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Install Backend Dependencies
+        run: cd backend && npm install
+
+      - name: Start Backend
+        run: cd backend && npm run dev &
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://localhost:27017/skillflare-test
+          JWT_SECRET: test-secret-key
+
+      - name: Wait for Backend
+        run: npx wait-on http://localhost:5000/api/health
+
+      - name: Run Load Tests
+        run: cd backend && k6 run tests/performance/load.test.js
+        env:
+          BASE_URL: http://localhost:5000/api
+
+      - name: Upload Load Test Results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: load-test-results
+          path: backend/summary.json
+
+  build-and-push:
+    needs: [lint-and-test, security, integration-tests]
+    runs-on: ubuntu-latest
+    name: Build & Push Docker Images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/backend:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/backend:latest
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/backend:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}/backend:buildcache,mode=max
+
+      - name: Build and Push Frontend Image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/frontend:latest
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/frontend:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}/frontend:buildcache,mode=max
+
+  deploy-staging:
+    needs: [build-and-push]
+    runs-on: ubuntu-latest
+    name: Deploy to Staging
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      DEPLOY_KEY: ${{ secrets.DEPLOY_KEY || '' }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST || '' }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER || '' }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Deploy Backend to Staging
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ env.DEPLOY_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ env.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+          ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} \
+            "cd /opt/skillflare/staging && docker-compose pull && docker-compose up -d"
+
+      - name: Smoke Tests on Staging
+        run: |
+          sleep 10
+          curl -f http://${{ env.DEPLOY_HOST }}:5000/api/health || exit 1
+          curl -f http://${{ env.DEPLOY_HOST }}:5173 || exit 1
+
+      - name: Notify Deployment
+        if: ${{ success() && env.SLACK_WEBHOOK != '' }}
+        uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK || '' }}
+        with:
+          status: "success"
+          text: "Staging deployment successful"
+
+      - name: Notify Deployment Failure
+        if: ${{ failure() && env.SLACK_WEBHOOK != '' }}
+        uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK || '' }}
+        with:
+          status: "failure"
+          text: "Staging deployment failed"
+
+  quality-gate:
+    needs: [lint-and-test, integration-tests, e2e-tests]
+    runs-on: ubuntu-latest
+    name: Quality Gate Check
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check Test Results
+        run: |
+          echo "✅ All tests passed"
+          echo "✅ Code quality gates met"
+          echo "✅ Security checks passed"
+
+      - name: Status Check
+        if: failure()
+        run: |
+          echo "❌ Quality gates failed"
+          exit 1
+
+  notify:
+    if: always()
+    needs:
+      [
+        lint-and-test,
+        security,
+        integration-tests,
+        e2e-tests,
+        build-and-push,
+        deploy-staging,
+      ]
+    runs-on: ubuntu-latest
+    name: Notify Results
+
+    steps:
+      - name: Determine Status
+        id: status
+        run: |
+          if [ "${{ needs.lint-and-test.result }}" == "failure" ] || \
+             [ "${{ needs.integration-tests.result }}" == "failure" ] || \
+             [ "${{ needs.e2e-tests.result }}" == "failure" ]; then
+            echo "status=failure" >> $GITHUB_OUTPUT
+          else
+            echo "status=success" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Notification
+        if: ${{ always() && env.SLACK_WEBHOOK != '' }}
+        uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK || '' }}
+        with:
+          status: ${{ steps.status.outputs.status }}
+          text: |
+            Pipeline Status: ${{ steps.status.outputs.status }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}

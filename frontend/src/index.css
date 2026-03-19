@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    @apply antialiased;
+  }
+  
+  body {
+    @apply bg-brand-dark text-brand-text-primary min-h-screen selection:bg-brand-orange/30 selection:text-white;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight text-white;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-brand-dark;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-brand-border rounded-full hover:bg-brand-surface transition-colors;
+  }
+}
+
+@layer components {
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-full font-medium tracking-wide transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-dark active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-primary {
+    @apply btn bg-brand-orange text-white hover:bg-brand-orange-hover hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] focus:ring-brand-orange;
+  }
+  
+  .btn-secondary {
+    @apply btn bg-brand-surface text-white hover:bg-brand-border border border-brand-border focus:ring-brand-border;
+  }
+
+  /* Layout */
+  .wrapper {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-brand-card/50 backdrop-blur-sm border border-brand-border rounded-2xl p-6 transition-all duration-300;
+  }
+  
+  .card-hover {
+    @apply hover:border-brand-orange/30 hover:bg-brand-card hover:translate-y-[-4px] hover:shadow-card-hover;
+  }
+
+  /* Typography */
+  .heading-hero {
+    @apply text-5xl md:text-7xl font-bold leading-tight tracking-tighter;
+  }
+  
+  .text-muted {
+    @apply text-brand-text-secondary;
+  }
+
+  /* Inputs */
+  .input {
+    @apply w-full px-4 py-3 rounded-xl bg-brand-surface border border-brand-border text-white placeholder-brand-text-muted focus:outline-none focus:border-brand-orange/50 focus:ring-1 focus:ring-brand-orange/50 transition-all duration-200;
+  }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-orange to-red-500;
+  }
+  
+  .text-gradient-blue {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300;
+  }
+
+  .glass-header {
+    @apply bg-brand-dark/80 backdrop-blur-md border-b border-white/5;
+  }
+}

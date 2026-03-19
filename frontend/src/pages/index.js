@@ -1,0 +1,16 @@
+export { default as Home } from "./Home";
+export { default as Login } from "./Login";
+export { default as Register } from "./Register";
+export { default as ForgotPassword } from "./ForgotPassword";
+export { default as ResetPassword } from "./ResetPassword";
+export { default as BrowseTasks } from "./BrowseTasks";
+export { default as TaskDetails } from "./TaskDetails";
+export { default as Dashboard } from "./Dashboard";
+export { default as Profile } from "./Profile";
+export { default as EditProfile } from "./EditProfile";
+export { default as Leaderboard } from "./Leaderboard";
+export { default as PostTask } from "./PostTask";
+export { default as Mentors } from "./Mentors";
+export { default as MentorProfile } from "./MentorProfile";
+export { default as ApplyMentor } from "./ApplyMentor";
+export { default as Developers } from "./Developers";

@@ -1,0 +1,197 @@
+version: "3.8"
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:6-alpine
+    container_name: skillflare-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: skillflare
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - skillflare-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: skillflare-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass redispassword --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - skillflare-network
+
+  # Backend API Server
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: development
+    container_name: skillflare-backend
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      MONGODB_URI: mongodb://admin:password@mongodb:27017/skillflare
+      MONGODB_URI_TEST: mongodb://admin:password@mongodb:27017/skillflare-test
+      JWT_SECRET: development-jwt-secret-change-in-production
+      JWT_EXPIRE: 7d
+      RESET_TOKEN_SECRET: development-reset-secret
+      RESET_TOKEN_EXPIRE: 15m
+      CLIENT_URL: http://localhost:5173
+      REDIS_URL: redis://:redispassword@redis:6379
+      RESTRICT_EMAIL_DOMAIN: "false"
+      EMAIL_SERVICE: gmail
+      EMAIL_USER: ${EMAIL_USER:-your-email@gmail.com}
+      EMAIL_PASS: ${EMAIL_PASS:-your-app-password}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@skillflare.dev}
+      LOG_LEVEL: debug
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/tests:/app/tests
+      - /app/node_modules
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:5000/api/health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - skillflare-network
+    restart: unless-stopped
+
+  # Frontend Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:5000/api
+        VITE_SOCKET_URL: http://localhost:5000
+    container_name: skillflare-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: http://localhost:5000/api
+      VITE_SOCKET_URL: http://localhost:5000
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - /app/node_modules
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:5173",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - skillflare-network
+    restart: unless-stopped
+
+  # Mongo Express - MongoDB Admin
+  mongo-express:
+    image: mongo-express:latest
+    container_name: skillflare-mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: password
+      ME_CONFIG_MONGODB_URL: mongodb://admin:password@mongodb:27017/
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - skillflare-network
+    profiles: [debug]
+
+  # Redis Commander - Redis Admin
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: skillflare-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:redispassword
+    ports:
+      - "8082:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - skillflare-network
+    profiles: [debug]
+
+  # Mailhog - Email Testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: skillflare-mailhog
+    ports:
+      - "1025:1025" # SMTP server
+      - "8025:8025" # Web UI
+    networks:
+      - skillflare-network
+    profiles: [debug]
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  skillflare-network:
+    driver: bridge
+
+# Usage:
+# Development: docker-compose up
+# With debug tools: docker-compose --profile debug up
+# Rebuild: docker-compose up --build
+# Stop: docker-compose down
+# Clean: docker-compose down -v
