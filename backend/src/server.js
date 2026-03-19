@@ -41,6 +41,15 @@ if (process.env.NODE_ENV === "production") {
 // Disable etag generation to prevent 304 responses on GET requests
 app.set("etag", false);
 
+// Health check endpoint at root (for Render health checks - BEFORE CORS middleware)
+app.get("/", (req, res) => {
+  res.status(200).json({ status: "ok", message: "Server is running" });
+});
+
+app.head("/", (req, res) => {
+  res.status(200).end();
+});
+
 // Allowed origins for CORS
 const allowedOrigins =
   process.env.NODE_ENV === "production"
