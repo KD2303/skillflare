@@ -1,4 +1,12 @@
 {
+  "name": "skillflare",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "cd frontend && yarn install && yarn build",
+    "start": "cd frontend && yarn start"
+  },
   "dependencies": {
     "@heroicons/react": "^2.2.0"
   }

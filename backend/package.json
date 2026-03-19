@@ -1,9 +1,10 @@
 {
-  "name": "mits-SkillFlare-backend",
+  "name": "mits-skillflare-backend",
   "version": "1.0.0",
   "description": "Backend API for MITS SkillFlare - Student Talent Marketplace",
   "main": "src/server.js",
   "type": "module",
+  "license": "MIT",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
