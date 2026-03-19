@@ -4,7 +4,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "build": "cd backend && yarn install",
+    "build": "yarn install && cd backend && yarn install",
     "start": "cd backend && yarn start"
   },
   "dependencies": {

@@ -2,7 +2,7 @@ services:
   - type: web
     name: skillflare-backend
     runtime: node
-    buildCommand: cd backend && yarn install
+    buildCommand: yarn install && cd backend && yarn install
     startCommand: cd backend && yarn start
     envVars:
       - key: NODE_ENV
