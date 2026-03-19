@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: skillflare-frontend
+    runtime: node
+    buildCommand: cd frontend && yarn install && yarn build
+    startCommand: cd frontend && yarn start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_API_URL
+        value: https://skillflare-backend.onrender.com
+
+  - type: web
+    name: skillflare-backend
+    runtime: node
+    buildCommand: cd backend && yarn install
+    startCommand: cd backend && yarn start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
