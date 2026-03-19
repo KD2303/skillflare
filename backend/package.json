@@ -20,7 +20,6 @@
     "marketplace"
   ],
   "author": "MITS",
-  "license": "PRIVATE",
   "dependencies": {
     "axios": "^1.13.6",
     "bcryptjs": "^2.4.3",
