@@ -127,7 +127,7 @@ export const getSession = asyncHandler(async (req, res) => {
         .status(200)
         .json({ success: true, authenticated: false, user: null });
 
-    res.status(200).json({ success: true, authenticated: true, user });
+    res.status(200).json({ success: true, authenticated: true, user, token });
   } catch {
     res.status(200).json({ success: true, authenticated: false, user: null });
   }

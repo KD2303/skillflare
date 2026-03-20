@@ -34,9 +34,16 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.getSession();
       setUser(response.user || null);
       setIsAuthenticated(Boolean(response.authenticated));
+      // Store token in localStorage if authenticated for Socket.io connection
+      if (response.authenticated && response.token) {
+        localStorage.setItem("token", response.token);
+      } else {
+        localStorage.removeItem("token");
+      }
     } catch {
       setUser(null);
       setIsAuthenticated(false);
+      localStorage.removeItem("token");
     } finally {
       setLoading(false);
     }
@@ -47,6 +54,10 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.login(email, password);
       setUser(response.user);
       setIsAuthenticated(true);
+      // Store token in localStorage for Socket.io and other client-side usage
+      if (response.token) {
+        localStorage.setItem("token", response.token);
+      }
       toast.success(`Welcome back, ${response.user.name}!`);
       return response;
     } catch (error) {
@@ -65,6 +76,10 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.register(userData);
       setUser(response.user);
       setIsAuthenticated(true);
+      // Store token in localStorage for Socket.io and other client-side usage
+      if (response.token) {
+        localStorage.setItem("token", response.token);
+      }
       toast.success("Account created successfully!");
       return response;
     } catch (error) {
@@ -93,6 +108,9 @@ export const AuthProvider = ({ children }) => {
     // Clear user state
     setUser(null);
     setIsAuthenticated(false);
+
+    // Clear token from localStorage
+    localStorage.removeItem("token");
 
     // Clear any cached data (optional, add if there's caching in localStorage)
     // sessionStorage.clear(); // Only if you're using sessionStorage
