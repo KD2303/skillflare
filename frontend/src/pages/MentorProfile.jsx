@@ -216,11 +216,11 @@ const MentorProfile = () => {
               <div className="flex items-center justify-center md:justify-start gap-6 text-sm text-brand-text-secondary">
                 <div className="flex items-center">
                   <StarIcon className="h-5 w-5 text-yellow-400 mr-1.5" />
-                  <span className="font-semibold text-white">{mentor.rating.toFixed(1)}</span>
+                  <span className="font-semibold text-white">{(mentor.rating ?? 0).toFixed(1)}</span>
                   <span className="ml-1">Rating</span>
                 </div>
                 <div className="flex items-center">
-                  <span className="font-semibold text-white">{mentor.totalSessions}</span>
+                  <span className="font-semibold text-white">{mentor.totalSessions ?? 0}</span>
                   <span className="ml-1">Sessions Completed</span>
                 </div>
               </div>

@@ -97,7 +97,7 @@ const Mentors = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredMentors.map((mentor, index) => (
+            {(filteredMentors ?? []).map((mentor, index) => (
               <div
                 key={mentor._id}
                 className="card hover:border-brand-orange/50 transition-all duration-300 group animate-slide-up"
@@ -122,8 +122,8 @@ const Mentors = () => {
                     <div className="flex items-center text-sm text-brand-text-secondary mt-1">
                       <StarIcon className="h-4 w-4 text-yellow-400 mr-1" />
                       <span>
-                        {mentor.rating.toFixed(1)}{" "}
-                        <span className="mx-1">•</span> {mentor.totalSessions}{" "}
+                        {(mentor.rating ?? 0).toFixed(1)}{" "}
+                        <span className="mx-1">•</span> {mentor.totalSessions ?? 0}{" "}
                         sessions
                       </span>
                     </div>
