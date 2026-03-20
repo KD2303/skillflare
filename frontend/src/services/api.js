@@ -33,9 +33,15 @@ const cancelPendingRequest = (key) => {
   }
 };
 
-// Request interceptor — add abort controller for cancellation support
+// Request interceptor — add authorization header and request deduplication
 api.interceptors.request.use(
   (config) => {
+    // ✅ FIX: Attach JWT token from localStorage as Authorization header
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     // Skip deduplication for GET requests (allow parallel queries)
     // Only deduplicate POST/PUT/DELETE to prevent duplicate mutations
     const shouldDeduplicate = config.method !== "get";
