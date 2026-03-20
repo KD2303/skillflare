@@ -21,6 +21,7 @@ export const useSocket = () => {
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
   const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
@@ -50,23 +51,34 @@ export const SocketProvider = ({ children }) => {
       });
 
       newSocket.on("connect", () => {
-        console.log("Socket connected");
+        console.log("✓ Socket connected successfully");
         setIsConnected(true);
+        setReconnecting(false);
         // User is auto-joined to personal room via server-side auth
       });
 
-      newSocket.on("disconnect", () => {
-        console.log("Socket disconnected");
+      newSocket.on("disconnect", (reason) => {
+        console.log("Socket disconnected:", reason);
         setIsConnected(false);
+        // Only show reconnecting for abnormal disconnects
+        if (reason !== "io client namespace disconnect") {
+          setReconnecting(true);
+        }
       });
 
       newSocket.on("connect_error", (error) => {
-        console.error("Socket connection error:", error);
+        console.error("✗ Socket connection error:", error.message);
         setIsConnected(false);
+        setReconnecting(true);
       });
 
       newSocket.on("error", (error) => {
-        console.error("Socket error:", error);
+        console.error("✗ Socket error:", error);
+        setIsConnected(false);
+      });
+
+      newSocket.io.engine.on('upgrade', (transport) => {
+        console.log("Socket upgraded to:", transport.name);
       });
 
       setSocket(newSocket);

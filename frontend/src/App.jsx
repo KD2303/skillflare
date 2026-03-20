@@ -3,6 +3,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { Toaster } from "react-hot-toast";
@@ -34,12 +35,15 @@ const Admin = lazy(() => import("./pages/Admin"));
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return <PageLoading />;
   }
 
   if (!user) {
+    // Store the path the user was trying to access so we can redirect them after login
+    localStorage.setItem('redirectAfterLogin', location.pathname);
     return <Navigate to="/login" replace />;
   }
 

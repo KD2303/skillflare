@@ -226,9 +226,27 @@ export const verifySkill = asyncHandler(async (req, res) => {
 export const requestSession = asyncHandler(async (req, res) => {
   const { mentorId, skill, message, sessionDate, creditsUsed } = req.body;
 
+  // Validate mentorId is provided and is valid MongoDB ObjectId format
+  if (!mentorId || !mongoose.Types.ObjectId.isValid(mentorId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid mentor ID provided",
+    });
+  }
+
+  // Validate credit usage
+  if (!creditsUsed || creditsUsed <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid credits amount",
+    });
+  }
+
   if (req.user._id.toString() === mentorId) {
-    res.status(400);
-    throw new Error("You cannot request a session with yourself");
+    return res.status(400).json({
+      success: false,
+      message: "You cannot request a session with yourself",
+    });
   }
 
   const mentorProfile = await MentorProfile.findOne({
@@ -236,23 +254,34 @@ export const requestSession = asyncHandler(async (req, res) => {
     isActive: true,
   });
   if (!mentorProfile) {
-    res.status(404);
-    throw new Error("Mentor not found or inactive");
+    return res.status(404).json({
+      success: false,
+      message: "Mentor not found or inactive",
+    });
   }
 
   const student = await User.findById(req.user._id);
+  if (!student) {
+    return res.status(401).json({
+      success: false,
+      message: "User not found",
+    });
+  }
+
   if (student.creditPoints < creditsUsed) {
-    res.status(400);
-    throw new Error("Insufficient credits");
+    return res.status(400).json({
+      success: false,
+      message: `Insufficient credits. You have ${student.creditPoints} credits but need ${creditsUsed}`,
+    });
   }
 
   // Use a transaction so credit deduction and request creation are atomic
-  const session = await mongoose.startSession();
+  const dbSession = await mongoose.startSession();
   let request;
   try {
-    await session.withTransaction(async () => {
+    await dbSession.withTransaction(async () => {
       student.creditPoints -= creditsUsed;
-      await student.save({ session });
+      await student.save({ session: dbSession });
 
       [request] = await MentorshipRequest.create(
         [
@@ -265,22 +294,23 @@ export const requestSession = asyncHandler(async (req, res) => {
             creditsUsed,
           },
         ],
-        { session },
+        { session: dbSession },
       );
     });
   } catch (error) {
     logger.error("Failed to create mentorship request", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Failed to create mentorship request",
+      message: "Failed to create mentorship request. Please try again.",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
-    return;
   } finally {
-    await session.endSession();
+    await dbSession.endSession();
   }
 
   res.status(201).json({
     success: true,
+    message: "Session request created successfully",
     request,
   });
 });

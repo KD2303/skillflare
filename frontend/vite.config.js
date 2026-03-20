@@ -9,7 +9,7 @@ export default defineConfig({
     outDir: 'dist',  // Explicitly ensure output goes to dist for Vercel
     sourcemap: false, // Do not expose source maps in production builds
     chunkSizeWarningLimit: 1000,  // Suppress warnings for code splitting
-    minify: 'terser',  // Better minification
+    minify: 'esbuild',  // Use esbuild instead of terser (no extra dependency)
     target: 'esnext',  // Target modern browsers
   },
   server: {

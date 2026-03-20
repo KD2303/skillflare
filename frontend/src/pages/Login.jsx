@@ -55,7 +55,11 @@ const Login = () => {
     try {
       setLoading(true);
       await login(formData.email, formData.password);
-      navigate("/dashboard");
+      
+      // Check if there's a stored redirect path from ProtectedRoute
+      const redirectTo = localStorage.getItem('redirectAfterLogin') || '/dashboard';
+      localStorage.removeItem('redirectAfterLogin');
+      navigate(redirectTo);
     } catch (error) {
       // Error is handled in AuthContext
     } finally {

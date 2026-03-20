@@ -180,9 +180,24 @@ const MentorProfile = () => {
     try {
       await requestSession({ mentorId: mentor.userId._id, ...sessionData });
       toast.success('Session requested successfully!');
+      // Reset form
+      setSessionData({ skill: '', sessionDate: '', message: '', creditsUsed: 10 });
       navigate('/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to request session');
+      // Enhanced error handling with specific error codes
+      if (err.response?.status === 429) {
+        toast.error('Too many requests. Please wait a moment before trying again.');
+      } else if (err.response?.status === 404) {
+        toast.error('Mentor not found. Please refresh and try again.');
+      } else if (err.response?.status === 400) {
+        toast.error(err.response?.data?.message || 'Invalid request. Please check your input.');
+      } else if (err.response?.status === 500) {
+        toast.error('Server error occurred. Please try again in a moment.');
+      } else if (err.code === 'ECONNABORTED') {
+        toast.error('Request timed out. Please try again.');
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to request session. Please try again.');
+      }
     } finally {
       setRequesting(false);
     }

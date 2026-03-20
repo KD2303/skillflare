@@ -5,7 +5,7 @@ const isProduction = process.env.NODE_ENV === "production";
 // General API rate limiter
 export const apiLimiter = rateLimit({
   windowMs: isProduction ? 15 * 60 * 1000 : 60 * 1000, // 15 min in prod, 1 min in dev
-  max: isProduction ? 100 : 1000, // Higher ceiling in dev to avoid blocking normal workflow
+  max: isProduction ? 500 : 1000, // Increased from 100 to 500 in production (prevents 429 blocking legitimate users)
   standardHeaders: true,
   legacyHeaders: false,
   message: {

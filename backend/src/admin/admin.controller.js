@@ -172,13 +172,23 @@ export const changeUserRole = asyncHandler(async (req, res) => {
 export const getAllTasks = asyncHandler(async (req, res) => {
   const { page = 1, limit = 50, status } = req.query;
 
+  // Validate pagination parameters
+  const parsedPage = Math.max(1, parseInt(page) || 1);
+  const parsedLimit = Math.max(1, Math.min(100, parseInt(limit) || 50)); // Cap limit at 100
+
   const filters = {};
-  if (status) filters.status = status;
+  if (status) {
+    // Validate status is one of the allowed values
+    const validStatuses = ['open', 'assigned', 'submitted', 'completed', 'cancelled'];
+    if (validStatuses.includes(status)) {
+      filters.status = status;
+    }
+  }
 
   const result = await adminService.getAllTasks(
     filters,
-    parseInt(page),
-    parseInt(limit),
+    parsedPage,
+    parsedLimit,
   );
 
   res.status(200).json({
