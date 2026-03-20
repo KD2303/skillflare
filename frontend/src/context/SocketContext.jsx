@@ -37,12 +37,16 @@ export const SocketProvider = ({ children }) => {
       }
 
       const newSocket = io(socketUrl, {
-        transports: ["websocket", "polling"],
+        transports: ["websocket", "polling"],  // Fallback to polling if websocket fails
         auth: { token },
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        reconnectionAttempts: 5,
+        reconnectionDelay: 2000,  // Increased for production to avoid hammering Render
+        reconnectionDelayMax: 10000,  // Max delay for exponential backoff
+        reconnectionAttempts: 5,  // Limit reconnection attempts to avoid infinite retries
         reconnection: true,
+        autoConnect: true,  // Auto-connect when socket is created
+        upgrade: true,  // Allow upgrade from polling to websocket
+        forceNew: false,  // Reuse existing socket connection
+        secure: socketUrl.startsWith('https'),  // Use secure websocket in production
       });
 
       newSocket.on("connect", () => {

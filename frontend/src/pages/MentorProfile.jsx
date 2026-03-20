@@ -94,7 +94,7 @@ const MentorProfile = () => {
   const startEditing = () => {
     setEditData({
       bio: mentor.bio || '',
-      skills: mentor.skills.map(s => ({ name: s.name, level: s.level || 'beginner' })),
+      skills: (mentor.skills ?? []).map(s => ({ name: s.name, level: s.level || 'beginner' })),
       socialLinks: { linkedin: '', github: '', twitter: '', instagram: '', ...(mentor.socialLinks || {}) },
       codingPlatforms: { leetcode: '', hackerrank: '', codeforces: '', codechef: '', gfg: '', ...(mentor.codingPlatforms || {}) },
       isActive: mentor.isActive,

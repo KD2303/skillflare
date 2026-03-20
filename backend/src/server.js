@@ -66,10 +66,12 @@ const io = new Server(httpServer, {
     origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
+    allowEIO3: true,  // Allow Engine.IO v3 clients for compatibility
   },
   maxHttpBufferSize: 1e6, // 1MB max for socket messages
   pingInterval: 25000, // Ping clients every 25s
   pingTimeout: 60000, // Timeout after 60s no pong
+  transports: ['websocket', 'polling'],  // Support both websocket and polling
 });
 
 // --- Security middleware ---
